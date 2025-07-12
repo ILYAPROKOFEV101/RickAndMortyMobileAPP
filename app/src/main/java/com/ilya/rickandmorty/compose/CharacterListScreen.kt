@@ -1,0 +1,121 @@
+package com.ilya.rickandmorty.compose
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import androidx.paging.LoadState
+import androidx.paging.compose.collectAsLazyPagingItems
+import coil.compose.AsyncImage
+import com.ilya.rickandmorty.data.Character as RMCharacter
+import com.ilya.rickandmorty.presentation.CharacterViewModel
+
+@Composable
+fun CharacterListScreen(
+    viewModel: CharacterViewModel = viewModel(),
+    navController: NavController
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    var showFilters by remember { mutableStateOf(false) }
+    var filters by remember { mutableStateOf(CharacterFilters()) }
+
+    val characters = viewModel.getCharacters(
+        name = if (searchQuery.isNotEmpty()) searchQuery else null,
+        status = filters.status,
+        species = filters.species,
+        gender = filters.gender
+    ).collectAsLazyPagingItems()
+
+    Scaffold(
+        topBar = {
+            SearchBar(
+                query = searchQuery,
+                onQueryChange = { searchQuery = it },
+                onSearch = { characters.refresh() },
+                onFilterClick = { showFilters = true }
+            )
+        }
+    ) { padding ->
+        CharacterGrid(
+            characters = characters,
+            padding = padding,
+            onItemClick = { character ->
+                navController.navigate("character_detail/${character.id}")
+            }
+        )
+    }
+
+    if (showFilters) {
+        FilterDialog(
+            filters = filters,
+            onApply = {
+                filters = it
+                characters.refresh()
+                showFilters = false
+            },
+            onDismiss = { showFilters = false }
+        )
+    }
+}
+
+@Composable
+fun CharacterGrid(
+    characters: androidx.paging.compose.LazyPagingItems<RMCharacter>,
+    padding: PaddingValues,
+    onItemClick: (RMCharacter) -> Unit
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        contentPadding = padding
+    ) {
+        items(characters.itemCount) { index ->
+            characters[index]?.let { character ->
+                CharacterItem(character = character, onClick = onItemClick)
+            }
+        }
+
+        if (characters.loadState.append == LoadState.Loading) {
+            item {
+                Text("Loading more...")
+            }
+        }
+    }
+}
+
+@Composable
+fun CharacterItem(character: RMCharacter, onClick: (RMCharacter) -> Unit) {
+    Card(
+        modifier = Modifier
+            .padding(8.dp)
+            .clickable { onClick(character) }
+    ) {
+        Column {
+            AsyncImage(
+                model = character.image,
+                contentDescription = character.name,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f),
+                contentScale = ContentScale.Crop
+            )
+            Text(
+                text = character.name,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(8.dp)
+            )
+            Text(
+                text = "${character.species}, ${character.status}, ${character.gender}",
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            )
+        }
+    }
+}
