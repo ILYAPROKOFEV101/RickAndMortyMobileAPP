@@ -1,5 +1,7 @@
 package com.ilya.rickandmorty.compose
 
+import AppTheme
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -7,6 +9,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -18,6 +21,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.AsyncImage
 import com.ilya.rickandmorty.data.Character as RMCharacter
 import com.ilya.rickandmorty.presentation.CharacterViewModel
+import com.ilya.rickandmorty.ui.theme.AppTypography
 
 @Composable
 fun CharacterListScreen(
@@ -35,37 +39,41 @@ fun CharacterListScreen(
         gender = filters.gender
     ).collectAsLazyPagingItems()
 
-    Scaffold(
-        topBar = {
-            SearchBar(
-                query = searchQuery,
-                onQueryChange = { searchQuery = it },
-                onSearch = { characters.refresh() },
-                onFilterClick = { showFilters = true }
+    AppTheme {
+        Scaffold(
+            containerColor = Theme.colors.primaryBackground,
+            topBar = {
+                SearchBar(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    onSearch = { characters.refresh() },
+                    onFilterClick = { showFilters = true }
+                )
+            }
+        ) { padding ->
+            CharacterGrid(
+                characters = characters,
+                padding = padding,
+                onItemClick = { character ->
+                    navController.navigate("character_detail/${character.id}")
+                }
             )
         }
-    ) { padding ->
-        CharacterGrid(
-            characters = characters,
-            padding = padding,
-            onItemClick = { character ->
-                navController.navigate("character_detail/${character.id}")
-            }
-        )
-    }
 
-    if (showFilters) {
-        FilterDialog(
-            filters = filters,
-            onApply = {
-                filters = it
-                characters.refresh()
-                showFilters = false
-            },
-            onDismiss = { showFilters = false }
-        )
+        if (showFilters) {
+            FilterDialog(
+                filters = filters,
+                onApply = {
+                    filters = it
+                    characters.refresh()
+                    showFilters = false
+                },
+                onDismiss = { showFilters = false }
+            )
+        }
     }
 }
+
 
 @Composable
 fun CharacterGrid(
@@ -75,7 +83,9 @@ fun CharacterGrid(
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
-        contentPadding = padding
+        contentPadding = padding,
+        modifier = Modifier
+            .background(Theme.colors.primaryBackground)
     ) {
         items(characters.itemCount) { index ->
             characters[index]?.let { character ->
@@ -85,20 +95,34 @@ fun CharacterGrid(
 
         if (characters.loadState.append == LoadState.Loading) {
             item {
-                Text("Loading more...")
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Theme.colors.primaryAction)
+                }
             }
         }
     }
 }
+
 
 @Composable
 fun CharacterItem(character: RMCharacter, onClick: (RMCharacter) -> Unit) {
     Card(
         modifier = Modifier
             .padding(8.dp)
-            .clickable { onClick(character) }
+            .clickable { onClick(character) },
+        colors = CardDefaults.cardColors(
+            containerColor = Theme.colors.googleColors
+        )
     ) {
-        Column {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
             AsyncImage(
                 model = character.image,
                 contentDescription = character.name,
@@ -110,12 +134,19 @@ fun CharacterItem(character: RMCharacter, onClick: (RMCharacter) -> Unit) {
             Text(
                 text = character.name,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(8.dp)
+                style = AppTypography.bodyLarge,
+                color = Theme.colors.textColor,
+                modifier = Modifier
+                    .padding(8.dp)
             )
             Text(
-                text = "${character.species}, ${character.status}, ${character.gender}",
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                text = "${character.gender} | ${character.species}",
+                style = AppTypography.bodyMedium,
+                color = Theme.colors.textColor,
+                modifier = Modifier
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }
     }
 }
+

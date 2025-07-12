@@ -1,5 +1,7 @@
 package com.ilya.rickandmorty.compose
 
+import AppTheme
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -11,7 +13,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ilya.rickandmorty.api.RetrofitClient
-import com.ilya.rickandmorty.data.Character // ✅ ВАЖНО!
+import com.ilya.rickandmorty.data.Character
+import com.ilya.rickandmorty.ui.theme.formatCreatedDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -24,14 +27,37 @@ fun CharacterDetailScreen(characterId: Int) {
         }
     }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Character Details") }) }
-    ) { padding ->
-        character?.let { char ->
-            CharacterDetailsContent(char, Modifier.padding(padding))
-        } ?: run {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+    AppTheme { // ✅ оборачиваем всё в кастомную тему
+        Scaffold(
+            containerColor = Theme.colors.primaryBackground,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            "Character Details",
+                            color = Theme.colors.textColor // ✅ цвет текста
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Theme.colors.primaryBackground
+                    )
+                )
+            }
+        ) { padding ->
+            character?.let { char ->
+                CharacterDetailsContent(
+                    character = char,
+                    modifier = Modifier.padding(padding)
+                )
+            } ?: run {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Theme.colors.primaryBackground),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Theme.colors.primaryAction)
+                }
             }
         }
     }
@@ -42,31 +68,50 @@ fun CharacterDetailsContent(character: Character, modifier: Modifier = Modifier)
     Column(
         modifier = modifier
             .verticalScroll(rememberScrollState())
-            .padding(16.dp)
+            .background(Theme.colors.primaryBackground)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally // Центрирует всё внутри
     ) {
         AsyncImage(
             model = character.image,
             contentDescription = character.name,
             modifier = Modifier
                 .size(200.dp)
-                .align(Alignment.CenterHorizontally)
         )
-        DetailItem("Name", character.name)
-        DetailItem("Status", character.status)
-        DetailItem("Species", character.species)
-        DetailItem("Type", if (character.type.isNotEmpty()) character.type else "Unknown") // ✅ исправлено
-        DetailItem("Gender", character.gender)
-        DetailItem("Origin", character.origin.name)
-        DetailItem("Location", character.location.name)
-        DetailItem("Episodes", character.episode.size.toString())
-        DetailItem("Created", character.created)
+
+        // Отцентрированное имя под фотографией
+        Text(
+            text = character.name,
+            style = MaterialTheme.typography.displayMedium, // Используем ваш шрифт
+            color = Theme.colors.textColor,
+            modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
+        )
+
+        // Остальные детали идут по левому краю
+        Column(modifier = Modifier.fillMaxWidth()) {
+            DetailItem("Status", character.status)
+            DetailItem("Species", character.species)
+            DetailItem("Type", if (character.type.isNotEmpty()) character.type else "Unknown")
+            DetailItem("Gender", character.gender)
+            DetailItem("Origin", character.origin.name)
+            DetailItem("Location", character.location.name)
+            DetailItem("Episodes", character.episode.size.toString())
+            DetailItem("Created", character.created.formatCreatedDate())
+        }
     }
 }
 
 @Composable
 fun DetailItem(label: String, value: String) {
     Row(modifier = Modifier.padding(vertical = 4.dp)) {
-        Text("$label: ", fontWeight = FontWeight.Bold)
-        Text(value)
+        Text(
+            text = "$label: ",
+            fontWeight = FontWeight.Bold,
+            color = Theme.colors.textColor
+        )
+        Text(
+            text = value,
+            color = Theme.colors.textColor
+        )
     }
 }

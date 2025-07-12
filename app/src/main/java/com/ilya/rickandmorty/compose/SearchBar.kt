@@ -1,5 +1,6 @@
 package com.ilya.rickandmorty.compose
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.TextFieldDefaults
+import com.ilya.rickandmorty.ui.theme.AppTypography
 
 
 @Composable
@@ -46,15 +50,35 @@ fun SearchBar(
         TextField(
             value = query,
             onValueChange = onQueryChange,
-            placeholder = { Text("Search characters...") },
-            modifier = Modifier.weight(1f),
-            singleLine = true
+            placeholder = {
+                Text(
+                    text = "Search characters...",
+                    style = AppTypography.bodyMedium,
+                    color = Theme.colors.textColor.copy(alpha = 0.6f)
+                )
+            },
+            textStyle = AppTypography.bodyMedium.copy(color = Theme.colors.textColor),
+            singleLine = true,
+            colors = TextFieldDefaults.colors(
+                unfocusedContainerColor = Theme.colors.googleColors,
+                focusedContainerColor = Theme.colors.googleColors,
+                unfocusedIndicatorColor = Theme.colors.primaryAction,
+                focusedIndicatorColor = Theme.colors.primaryAction,
+                cursorColor = Theme.colors.primaryAction
+            ),
+            modifier = Modifier.weight(1f)
         )
+
         IconButton(onClick = onFilterClick) {
-            Icon(Icons.Default.FilterList, contentDescription = "Filters")
+            Icon(
+                imageVector = Icons.Default.FilterList,
+                contentDescription = "Filters",
+                tint = Theme.colors.primaryAction
+            )
         }
     }
 }
+
 
 @Composable
 fun FilterDialog(
@@ -64,10 +88,16 @@ fun FilterDialog(
 ) {
     var localFilters by remember { mutableStateOf(filters) }
 
-    androidx.compose.material3.AlertDialog(
+    AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Theme.colors.primaryBackground,
+        titleContentColor = Theme.colors.textColor,
+        textContentColor = Theme.colors.textColor,
         title = {
-            Text(text = "Filter Characters")
+            Text(
+                text = "Filter Characters",
+                style = AppTypography.displayMedium
+            )
         },
         text = {
             Column {
@@ -83,17 +113,24 @@ fun FilterDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { onApply(localFilters) }) {
-                Text("Apply")
+            Button(
+                onClick = { onApply(localFilters) },
+                colors = ButtonDefaults.buttonColors(containerColor = Theme.colors.primaryAction)
+            ) {
+                Text("Apply", color = Theme.colors.textColor, style = AppTypography.bodyMedium)
             }
         },
         dismissButton = {
-            Button(onClick = onDismiss) {
-                Text("Cancel")
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = Theme.colors.googleColors)
+            ) {
+                Text("Cancel", color = Theme.colors.textColor, style = AppTypography.bodyMedium)
             }
         }
     )
 }
+
 
 
 @Composable
@@ -106,20 +143,34 @@ fun FilterField(
     var expanded by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.padding(vertical = 4.dp)) {
-        OutlinedButton(onClick = { expanded = true }) {
-            Text("$title: ${selected ?: "Any"}")
+        OutlinedButton(
+            onClick = { expanded = true },
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = Theme.colors.googleColors,
+                contentColor = Theme.colors.textColor
+            )
+        ) {
+            Text(
+                "$title: ${selected ?: "Any"}",
+                style = AppTypography.bodyMedium,
+                color = Theme.colors.textColor
+            )
             Icon(
                 imageVector = Icons.Default.ArrowDropDown,
-                contentDescription = null
+                contentDescription = null,
+                tint = Theme.colors.textColor
             )
         }
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier.background(Theme.colors.googleColors)
         ) {
             DropdownMenuItem(
-                text = { Text("Any") },
+                text = {
+                    Text("Any", style = AppTypography.bodyMedium, color = Theme.colors.textColor)
+                },
                 onClick = {
                     onSelectionChange(null)
                     expanded = false
@@ -127,7 +178,9 @@ fun FilterField(
             )
             options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(option) },
+                    text = {
+                        Text(option, style = AppTypography.bodyMedium, color = Theme.colors.textColor)
+                    },
                     onClick = {
                         onSelectionChange(option)
                         expanded = false
@@ -137,6 +190,7 @@ fun FilterField(
         }
     }
 }
+
 
 
 data class CharacterFilters(

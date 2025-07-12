@@ -8,6 +8,8 @@ import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
 
+import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
 interface RickAndMortyApi {
     @GET("character")
     suspend fun getCharacters(
@@ -23,13 +25,7 @@ interface RickAndMortyApi {
     suspend fun getCharacterDetails(@Path("id") id: Int): Character?
 }
 
-object RetrofitClient {
-    val api: RickAndMortyApi by lazy {
-        Retrofit.Builder()
-            .baseUrl("https://rickandmortyapi.com/api/")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(RickAndMortyApi::class.java)
-    }
-}
+
+
+
 
