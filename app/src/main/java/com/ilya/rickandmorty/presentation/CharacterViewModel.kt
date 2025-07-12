@@ -14,22 +14,38 @@ import androidx.paging.PagingSource
 import com.ilya.rickandmorty.data.Character
 import kotlinx.coroutines.flow.Flow
 
+
+import android.app.Application
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.paging.*
+import com.ilya.rickandmorty.data.ROOM.DB.AppDatabase
+
+
 class CharacterViewModel : ViewModel() {
-    private val repository = CharacterRepository(RetrofitClient.api)
+
+    private lateinit var repository: CharacterRepository
+
+    fun initRepository(context: Context) {
+        if (!::repository.isInitialized) {
+            val dao = AppDatabase.getDatabase(context).characterDao()
+            repository = CharacterRepository(RetrofitClient.api, dao)
+        }
+    }
 
     fun getCharacters(
         name: String? = null,
         status: String? = null,
         species: String? = null,
         gender: String? = null
-    ): Flow<PagingData<com.ilya.rickandmorty.data.Character>> {
+    ): Flow<PagingData<Character>> {
         return Pager(
             config = PagingConfig(pageSize = 20),
             pagingSourceFactory = {
                 CharacterPagingSource(repository, name, status, species, gender)
             }
-        ).flow
+        ).flow.cachedIn(viewModelScope)
     }
 }
-
 

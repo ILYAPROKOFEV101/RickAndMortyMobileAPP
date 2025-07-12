@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -28,6 +29,12 @@ fun CharacterListScreen(
     viewModel: CharacterViewModel = viewModel(),
     navController: NavController
 ) {
+
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        viewModel.initRepository(context)
+    }
+
     var searchQuery by remember { mutableStateOf("") }
     var showFilters by remember { mutableStateOf(false) }
     var filters by remember { mutableStateOf(CharacterFilters()) }

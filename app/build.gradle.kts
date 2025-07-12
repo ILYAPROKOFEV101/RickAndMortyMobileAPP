@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-
+    id("kotlin-kapt")
 }
 
 android {
@@ -41,6 +41,16 @@ android {
 }
 
 dependencies {
+
+    // Room
+    implementation ("androidx.room:room-runtime:2.7.2")
+    kapt ("androidx.room:room-compiler:2.7.2")
+
+    // Опционально: поддержка Kotlin Coroutines
+    implementation ("androidx.room:room-ktx:2.7.2")
+
+    // Gson для сериализации (если используешь)
+    implementation ("com.google.code.gson:gson:2.13.1")
 
     // Jetpack Compose
     implementation ("androidx.activity:activity-compose:1.8.2")
