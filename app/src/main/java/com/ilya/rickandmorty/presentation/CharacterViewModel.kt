@@ -38,14 +38,16 @@ class CharacterViewModel : ViewModel() {
         name: String? = null,
         status: String? = null,
         species: String? = null,
-        gender: String? = null
+        gender: String? = null,
+        isOnline: Boolean
     ): Flow<PagingData<Character>> {
         return Pager(
             config = PagingConfig(pageSize = 20),
             pagingSourceFactory = {
-                CharacterPagingSource(repository, name, status, species, gender)
+                CharacterPagingSource(repository, name, status, species, gender, isOnline)
             }
         ).flow.cachedIn(viewModelScope)
     }
+
 }
 

@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.paging.LoadState
+import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.AsyncImage
 import com.ilya.rickandmorty.data.Character as RMCharacter
@@ -31,6 +32,13 @@ fun CharacterListScreen(
 ) {
 
     val context = LocalContext.current
+    var isOnline by remember { mutableStateOf(false) }
+
+    // Проверка подключения и инициализация репозитория
+    LaunchedEffect(Unit) {
+        isOnline = hasInternetAccess()
+        viewModel.initRepository(context)
+    }
     LaunchedEffect(Unit) {
         viewModel.initRepository(context)
     }
@@ -43,7 +51,8 @@ fun CharacterListScreen(
         name = if (searchQuery.isNotEmpty()) searchQuery else null,
         status = filters.status,
         species = filters.species,
-        gender = filters.gender
+        gender = filters.gender,
+        isOnline = isOnline
     ).collectAsLazyPagingItems()
 
     AppTheme {
@@ -84,7 +93,7 @@ fun CharacterListScreen(
 
 @Composable
 fun CharacterGrid(
-    characters: androidx.paging.compose.LazyPagingItems<RMCharacter>,
+    characters: LazyPagingItems<RMCharacter>,
     padding: PaddingValues,
     onItemClick: (RMCharacter) -> Unit
 ) {

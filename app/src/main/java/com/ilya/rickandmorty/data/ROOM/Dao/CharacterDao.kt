@@ -23,4 +23,31 @@ interface CharacterDao {
 
     @Query("DELETE FROM characters")
     suspend fun clearAll()
+
+
+    @Query("""
+        SELECT * FROM characters
+        WHERE (:name IS NULL OR name LIKE '%' || :name || '%')
+          AND (:status IS NULL OR status = :status)
+          AND (:species IS NULL OR species = :species)
+          AND (:gender IS NULL OR gender = :gender)
+        ORDER BY name ASC
+        LIMIT :limit OFFSET :offset
+    """)
+    suspend fun getCharactersWithFilters(
+        name: String?,
+        status: String?,
+        species: String?,
+        gender: String?,
+        limit: Int,
+        offset: Int
+    ): List<CharacterEntity>
+
+    @Query("SELECT COUNT(*) FROM characters WHERE (:name IS NULL OR name LIKE '%' || :name || '%') AND (:status IS NULL OR status = :status) AND (:species IS NULL OR species = :species) AND (:gender IS NULL OR gender = :gender)")
+    suspend fun getCountWithFilters(
+        name: String?,
+        status: String?,
+        species: String?,
+        gender: String?
+    ): Int
 }

@@ -5,9 +5,8 @@ import com.ilya.rickandmorty.data.CharacterResponse
 import com.ilya.rickandmorty.data.ROOM.Dao.CharacterDao
 
 
-import android.util.Log
-import com.ilya.rickandmorty.data.PageInfo
-import com.ilya.rickandmorty.data.ROOM.toCharacter
+import com.ilya.rickandmorty.data.Character
+import com.ilya.rickandmorty.data.ROOM.Table.CharacterEntity
 import com.ilya.rickandmorty.data.ROOM.toEntity
 
 class CharacterRepository(
@@ -21,27 +20,31 @@ class CharacterRepository(
         species: String?,
         gender: String?
     ): CharacterResponse {
-        try {
-            val response = api.getCharacters(page, name, status, species, gender)
-            dao.insertAll(response.results.map { it.toEntity() })
-            return response
-        } catch (e: Exception) {
-            Log.e("CharacterRepository", "API failed, loading from DB", e)
-            if (page == 1) {
-                val cached = dao.getAllCharacters()
-                if (cached.isNotEmpty()) {
-                    return CharacterResponse(
-                        info = PageInfo(
-                            count = cached.size,
-                            pages = 1,
-                            next = null,
-                            prev = null
-                        ),
-                        results = cached.map { it.toCharacter() }
-                    )
-                }
-            }
-            throw e
-        }
+        return api.getCharacters(page, name, status, species, gender)
+    }
+
+    suspend fun cacheCharacters(characters: List<Character>) {
+        val entities = characters.map { it.toEntity() } // <- тебе нужно будет сделать toEntity()
+        dao.insertAll(entities)
+    }
+
+    suspend fun getCharactersFromDb(
+        name: String?,
+        status: String?,
+        species: String?,
+        gender: String?,
+        limit: Int,
+        offset: Int
+    ): List<CharacterEntity> {
+        return dao.getCharactersWithFilters(name, status, species, gender, limit, offset)
+    }
+
+    suspend fun getCountFromDb(
+        name: String?,
+        status: String?,
+        species: String?,
+        gender: String?
+    ): Int {
+        return dao.getCountWithFilters(name, status, species, gender)
     }
 }

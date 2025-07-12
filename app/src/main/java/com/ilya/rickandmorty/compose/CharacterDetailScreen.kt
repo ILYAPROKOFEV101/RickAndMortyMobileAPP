@@ -97,24 +97,21 @@ fun CharacterDetailsContent(character: Character, modifier: Modifier = Modifier)
             .verticalScroll(rememberScrollState())
             .background(Theme.colors.primaryBackground)
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally // Центрирует всё внутри
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         AsyncImage(
             model = character.image,
             contentDescription = character.name,
-            modifier = Modifier
-                .size(200.dp)
+            modifier = Modifier.size(200.dp)
         )
 
-        // Отцентрированное имя под фотографией
         Text(
             text = character.name,
-            style = MaterialTheme.typography.displayMedium, // Используем ваш шрифт
+            style = MaterialTheme.typography.displayMedium,
             color = Theme.colors.textColor,
             modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
         )
 
-        // Остальные детали идут по левому краю
         Column(modifier = Modifier.fillMaxWidth()) {
             DetailItem("Status", character.status)
             DetailItem("Species", character.species)
@@ -122,7 +119,13 @@ fun CharacterDetailsContent(character: Character, modifier: Modifier = Modifier)
             DetailItem("Gender", character.gender)
             DetailItem("Origin", character.origin.name)
             DetailItem("Location", character.location.name)
-            DetailItem("Episodes", character.episode.size.toString())
+
+            val episodeNumbers = remember(character.episode) {
+                character.episode.map { it.substringAfterLast("/") }
+            }
+
+            DetailItem("Episodes", episodeNumbers.joinToString(", "))
+
             DetailItem("Created", character.created.formatCreatedDate())
         }
     }
