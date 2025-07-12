@@ -9,11 +9,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ilya.rickandmorty.api.RetrofitClient
 import com.ilya.rickandmorty.data.Character
+import com.ilya.rickandmorty.data.ROOM.DB.AppDatabase
+import com.ilya.rickandmorty.data.ROOM.toCharacter
+import com.ilya.rickandmorty.data.ROOM.toEntity
 import com.ilya.rickandmorty.ui.theme.formatCreatedDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -21,13 +25,36 @@ import kotlinx.coroutines.withContext
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CharacterDetailScreen(characterId: Int) {
-    val character by produceState<Character?>(initialValue = null) {
-        value = withContext(Dispatchers.IO) {
-            RetrofitClient.api.getCharacterDetails(characterId)
+    val context = LocalContext.current
+
+    val characterDao = remember {
+        AppDatabase.getDatabase(context).characterDao()
+    }
+
+    val characterState = produceState<Character?>(initialValue = null, characterId) {
+        // Сначала пытаемся получить персонажа из БД
+        val fromDb = withContext(Dispatchers.IO) {
+            characterDao.getCharacterById(characterId)
+        }
+
+        if (fromDb != null) {
+            value = fromDb.toCharacter() // предполагается, что у Entity есть метод преобразования в Character
+        } else {
+            // Если в БД нет, грузим из сети
+            val fromNetwork = withContext(Dispatchers.IO) {
+                RetrofitClient.api.getCharacterDetails(characterId)
+            }
+
+            value = fromNetwork
+
+            // Сохраняем в БД асинхронно
+            withContext(Dispatchers.IO) {
+                fromNetwork?.let { characterDao.insert(it.toEntity()) } // предполагается, что Character -> Entity маппинг есть
+            }
         }
     }
 
-    AppTheme { // ✅ оборачиваем всё в кастомную тему
+    AppTheme {
         Scaffold(
             containerColor = Theme.colors.primaryBackground,
             topBar = {
@@ -35,7 +62,7 @@ fun CharacterDetailScreen(characterId: Int) {
                     title = {
                         Text(
                             "Character Details",
-                            color = Theme.colors.textColor // ✅ цвет текста
+                            color = Theme.colors.textColor
                         )
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -44,7 +71,7 @@ fun CharacterDetailScreen(characterId: Int) {
                 )
             }
         ) { padding ->
-            character?.let { char ->
+            characterState.value?.let { char ->
                 CharacterDetailsContent(
                     character = char,
                     modifier = Modifier.padding(padding)
