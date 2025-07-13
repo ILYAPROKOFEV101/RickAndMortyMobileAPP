@@ -184,7 +184,7 @@ fun FilterField(
                     onClick = {
                         onSelectionChange(option)
                         expanded = false
-                    }
+                    } //
                 )
             }
         }

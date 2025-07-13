@@ -8,9 +8,7 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
     private val client = OkHttpClient.Builder()
         .addInterceptor(LoggingInterceptor()) // вот здесь подключаем
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
+
         .build()
 
     val api: RickAndMortyApi by lazy {

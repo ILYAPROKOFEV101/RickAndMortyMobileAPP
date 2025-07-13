@@ -24,7 +24,7 @@ class CharacterRepository(
     }
 
     suspend fun cacheCharacters(characters: List<Character>) {
-        val entities = characters.map { it.toEntity() } // <- тебе нужно будет сделать toEntity()
+        val entities = characters.map { it.toEntity() }
         dao.insertAll(entities)
     }
 

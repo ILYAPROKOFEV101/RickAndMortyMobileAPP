@@ -1,5 +1,6 @@
 package com.ilya.rickandmorty.presentation
 
+import android.util.Log
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.ilya.rickandmorty.data.Character
@@ -23,6 +24,8 @@ class CharacterPagingSource(
 
     override suspend fun load(params: LoadParams<Int>): LoadResult<Int, Character> {
         val page = params.key ?: 1
+        Log.d("PagingDebug", "Loading page: $page, isOnline=$isOnline")
+
         val pageSize = params.loadSize
 
         return try {

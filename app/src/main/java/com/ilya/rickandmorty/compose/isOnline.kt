@@ -9,14 +9,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 
 suspend fun hasInternetAccess(): Boolean {
-    return try {
-        val client = withContext(Dispatchers.IO) { java.net.URL("https://www.google.com").openConnection() }
-        client.connectTimeout = 1500
-        client.getInputStream().close()
-        true
-    } catch (e: Exception) {
-        false
+    return withContext(Dispatchers.IO) {
+        try {
+            val url = URL("https://rickandmortyapi.com/api/")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "HEAD"
+            connection.connectTimeout = 1500
+            connection.readTimeout = 1500
+            connection.connect()
+            connection.responseCode in 200..399
+        } catch (e: Exception) {
+            false
+        }
     }
 }
+

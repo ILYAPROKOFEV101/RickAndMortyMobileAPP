@@ -32,27 +32,24 @@ fun CharacterDetailScreen(characterId: Int) {
     }
 
     val characterState = produceState<Character?>(initialValue = null, characterId) {
-        // Сначала пытаемся получить персонажа из БД
-        val fromDb = withContext(Dispatchers.IO) {
-            characterDao.getCharacterById(characterId)
+        val dao = characterDao
+
+        val fromNetwork = withContext(Dispatchers.IO) {
+            try {
+                val netChar = RetrofitClient.api.getCharacterDetails(characterId)
+                // Кешируем в БД
+                netChar?.let { dao.insert(it.toEntity()) }
+                netChar
+            } catch (e: Exception) {
+                null // Ошибка сети — вернём null, чтобы потом попробовать БД
+            }
         }
 
-        if (fromDb != null) {
-            value = fromDb.toCharacter() // предполагается, что у Entity есть метод преобразования в Character
-        } else {
-            // Если в БД нет, грузим из сети
-            val fromNetwork = withContext(Dispatchers.IO) {
-                RetrofitClient.api.getCharacterDetails(characterId)
-            }
-
-            value = fromNetwork
-
-            // Сохраняем в БД асинхронно
-            withContext(Dispatchers.IO) {
-                fromNetwork?.let { characterDao.insert(it.toEntity()) } // предполагается, что Character -> Entity маппинг есть
-            }
+        value = fromNetwork ?: withContext(Dispatchers.IO) {
+            dao.getCharacterById(characterId)?.toCharacter()
         }
     }
+
 
     AppTheme {
         Scaffold(
