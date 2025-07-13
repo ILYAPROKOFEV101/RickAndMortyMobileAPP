@@ -5,10 +5,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -24,36 +26,72 @@ import coil.compose.AsyncImage
 import com.ilya.rickandmorty.data.Character as RMCharacter
 import com.ilya.rickandmorty.presentation.CharacterViewModel
 import com.ilya.rickandmorty.ui.theme.AppTypography
+import AppTheme
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.SearchOff
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+
+import androidx.paging.PagingData
+
+import com.ilya.rickandmorty.ui.theme.AppTypography
+import kotlinx.coroutines.flow.flowOf
+
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
+import com.ilya.rickandmorty.R
 
 @Composable
 fun CharacterListScreen(
     viewModel: CharacterViewModel = viewModel(),
     navController: NavController
 ) {
-
     val context = LocalContext.current
     var isOnline by remember { mutableStateOf(false) }
-
-    // Проверка подключения и инициализация репозитория
-    LaunchedEffect(Unit) {
-        isOnline = hasInternetAccess()
-        viewModel.initRepository(context)
-    }
-    LaunchedEffect(Unit) {
-        viewModel.initRepository(context)
-    }
-
     var searchQuery by remember { mutableStateOf("") }
     var showFilters by remember { mutableStateOf(false) }
     var filters by remember { mutableStateOf(CharacterFilters()) }
+    val gridState = rememberLazyGridState()
 
-    val characters = viewModel.getCharacters(
-        name = if (searchQuery.isNotEmpty()) searchQuery else null,
-        status = filters.status,
-        species = filters.species,
-        gender = filters.gender,
-        isOnline = isOnline
-    ).collectAsLazyPagingItems()
+    // Получаем поток данных персонажей
+    val charactersPagingItems = viewModel.charactersFlow.collectAsLazyPagingItems()
+
+    // Состояние для SwipeRefresh
+    val swipeRefreshState = rememberSwipeRefreshState(
+        isRefreshing = charactersPagingItems.loadState.refresh is LoadState.Loading
+    )
+
+    LaunchedEffect(Unit) {
+        viewModel.initRepository(context)
+        isOnline = hasInternetAccess()
+        viewModel.loadCharacters(
+            name = if (searchQuery.isNotEmpty()) searchQuery else null,
+            status = filters.status,
+            species = filters.species,
+            gender = filters.gender,
+            isOnline = isOnline
+        )
+    }
+
+    // Обновление данных при изменении параметров
+    LaunchedEffect(searchQuery, filters) {
+        viewModel.loadCharacters(
+            name = if (searchQuery.isNotEmpty()) searchQuery else null,
+            status = filters.status,
+            species = filters.species,
+            gender = filters.gender,
+            isOnline = isOnline
+        )
+    }
 
     AppTheme {
         Scaffold(
@@ -62,18 +100,24 @@ fun CharacterListScreen(
                 SearchBar(
                     query = searchQuery,
                     onQueryChange = { searchQuery = it },
-                    onSearch = { characters.refresh() },
+                    onSearch = { charactersPagingItems.refresh() },
                     onFilterClick = { showFilters = true }
                 )
             }
         ) { padding ->
-            CharacterGrid(
-                characters = characters,
-                padding = padding,
-                onItemClick = { character ->
-                    navController.navigate("character_detail/${character.id}")
-                }
-            )
+            SwipeRefresh(
+                state = swipeRefreshState,
+                onRefresh = { charactersPagingItems.refresh() }
+            ) {
+                CharacterGrid(
+                    characters = charactersPagingItems,
+                    padding = padding,
+                    gridState = gridState,
+                    onItemClick = { character ->
+                        navController.navigate("character_detail/${character.id}")
+                    }
+                )
+            }
         }
 
         if (showFilters) {
@@ -81,7 +125,7 @@ fun CharacterListScreen(
                 filters = filters,
                 onApply = {
                     filters = it
-                    characters.refresh()
+                    charactersPagingItems.refresh()
                     showFilters = false
                 },
                 onDismiss = { showFilters = false }
@@ -95,29 +139,96 @@ fun CharacterListScreen(
 fun CharacterGrid(
     characters: LazyPagingItems<RMCharacter>,
     padding: PaddingValues,
+    gridState: LazyGridState,
     onItemClick: (RMCharacter) -> Unit
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        contentPadding = padding,
-        modifier = Modifier
-            .background(Theme.colors.primaryBackground)
-    ) {
-        items(characters.itemCount) { index ->
-            characters[index]?.let { character ->
-                CharacterItem(character = character, onClick = onItemClick)
-            }
-        }
+    // Проверяем состояние загрузки и наличие данных
+    val isLoading = characters.loadState.refresh is LoadState.Loading
+    val isError = characters.loadState.refresh is LoadState.Error
+    val isEmpty = characters.loadState.refresh is LoadState.NotLoading && characters.itemCount == 0
 
-        if (characters.loadState.append == LoadState.Loading) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = Theme.colors.primaryAction)
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (isLoading) {
+            // Показываем индикатор загрузки при первой загрузке
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = Theme.colors.primaryAction
+            )
+        } else if (isError) {
+            // Показываем сообщение об ошибке
+            val error = (characters.loadState.refresh as LoadState.Error).error
+            Text(
+                text = "Error: ${error.localizedMessage ?: "Unknown error"}",
+                color = Color.Red,
+                modifier = Modifier.align(Alignment.Center)
+            )
+        } else if (isEmpty) {
+            // Показываем сообщение, что ничего не найдено
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.SearchOff,
+                    contentDescription = "No results",
+                    tint = Theme.colors.textColor.copy(alpha = 0.5f),
+                    modifier = Modifier.size(64.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "No characters found",
+                    style = AppTypography.bodyLarge,
+                    color = Theme.colors.textColor.copy(alpha = 0.7f)
+                )
+                if (characters.loadState.refresh is LoadState.NotLoading) {
+                    Text(
+                        text = "Try different filters",
+                        style = AppTypography.bodyMedium,
+                        color = Theme.colors.textColor.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(top = 8.dp))
+                }
+            }
+        } else {
+            // Показываем список персонажей
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                state = gridState,
+                contentPadding = padding
+            ) {
+                items(characters.itemCount) { index ->
+                    characters[index]?.let { character ->
+                        CharacterItem(character = character, onClick = onItemClick)
+                    }
+                }
+
+                if (characters.loadState.append == LoadState.Loading) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = Theme.colors.primaryAction)
+                        }
+                    }
+                }
+
+                // Обработка ошибки при подгрузке
+                if (characters.loadState.append is LoadState.Error) {
+                    item {
+                        Text(
+                            text = "Error loading more",
+                            color = Color.Red,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        )
+
+                    }
                 }
             }
         }
@@ -136,8 +247,7 @@ fun CharacterItem(character: RMCharacter, onClick: (RMCharacter) -> Unit) {
         )
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
         ) {
             AsyncImage(
                 model = character.image,
@@ -152,17 +262,14 @@ fun CharacterItem(character: RMCharacter, onClick: (RMCharacter) -> Unit) {
                 fontWeight = FontWeight.Bold,
                 style = AppTypography.bodyLarge,
                 color = Theme.colors.textColor,
-                modifier = Modifier
-                    .padding(8.dp)
+                modifier = Modifier.padding(8.dp)
             )
             Text(
                 text = "${character.gender} | ${character.species}",
                 style = AppTypography.bodyMedium,
                 color = Theme.colors.textColor,
-                modifier = Modifier
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }
     }
 }
-

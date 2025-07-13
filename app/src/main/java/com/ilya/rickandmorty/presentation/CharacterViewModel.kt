@@ -21,9 +21,14 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.*
 import com.ilya.rickandmorty.data.ROOM.DB.AppDatabase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 
 class CharacterViewModel : ViewModel() {
+
 
     private lateinit var repository: CharacterRepository
 
@@ -34,20 +39,27 @@ class CharacterViewModel : ViewModel() {
         }
     }
 
-    fun getCharacters(
+    private val _charactersFlow = MutableStateFlow<PagingData<Character>>(PagingData.empty())
+    val charactersFlow = _charactersFlow.asStateFlow()
+
+    fun loadCharacters(
         name: String? = null,
         status: String? = null,
         species: String? = null,
         gender: String? = null,
         isOnline: Boolean
-    ): Flow<PagingData<Character>> {
-        return Pager(
-            config = PagingConfig(pageSize = 20),
-            pagingSourceFactory = {
-                CharacterPagingSource(repository, name, status, species, gender, isOnline)
-            }
-        ).flow.cachedIn(viewModelScope)
+    ) {
+        viewModelScope.launch {
+            Pager(
+                config = PagingConfig(pageSize = 20),
+                pagingSourceFactory = {
+                    CharacterPagingSource(repository, name, status, species, gender, isOnline)
+                }
+            ).flow.cachedIn(viewModelScope)
+                .collectLatest { pagingData ->
+                    _charactersFlow.value = pagingData
+                }
+        }
     }
-
 }
 

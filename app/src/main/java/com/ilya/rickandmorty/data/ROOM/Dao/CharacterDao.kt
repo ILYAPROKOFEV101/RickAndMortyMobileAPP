@@ -26,14 +26,14 @@ interface CharacterDao {
 
 
     @Query("""
-        SELECT * FROM characters
-        WHERE (:name IS NULL OR name LIKE '%' || :name || '%')
-          AND (:status IS NULL OR status = :status)
-          AND (:species IS NULL OR species = :species)
-          AND (:gender IS NULL OR gender = :gender)
-        ORDER BY name ASC
-        LIMIT :limit OFFSET :offset
-    """)
+    SELECT * FROM characters
+    WHERE (:name IS NULL OR name LIKE '%' || :name || '%')
+      AND (:status IS NULL OR status = :status)
+      AND (:species IS NULL OR species = :species)
+      AND (:gender IS NULL OR gender = :gender)
+    ORDER BY id ASC
+    LIMIT :limit OFFSET :offset
+""")
     suspend fun getCharactersWithFilters(
         name: String?,
         status: String?,
@@ -42,6 +42,7 @@ interface CharacterDao {
         limit: Int,
         offset: Int
     ): List<CharacterEntity>
+
 
     @Query("SELECT COUNT(*) FROM characters WHERE (:name IS NULL OR name LIKE '%' || :name || '%') AND (:status IS NULL OR status = :status) AND (:species IS NULL OR species = :species) AND (:gender IS NULL OR gender = :gender)")
     suspend fun getCountWithFilters(

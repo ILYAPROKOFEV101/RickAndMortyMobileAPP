@@ -6,8 +6,10 @@ import com.ilya.rickandmorty.data.ROOM.Dao.CharacterDao
 
 
 import com.ilya.rickandmorty.data.Character
+import com.ilya.rickandmorty.data.PageInfo
 import com.ilya.rickandmorty.data.ROOM.Table.CharacterEntity
 import com.ilya.rickandmorty.data.ROOM.toEntity
+import retrofit2.HttpException
 
 class CharacterRepository(
     private val api: RickAndMortyApi,
@@ -20,9 +22,26 @@ class CharacterRepository(
         species: String?,
         gender: String?
     ): CharacterResponse {
-        return api.getCharacters(page, name, status, species, gender)
+        return try {
+            api.getCharacters(
+                page = page,
+                name = name,
+                status = status,
+                species = species,
+                gender = gender
+            )
+        } catch (e: HttpException) {
+            // Обработка 404 ошибки (ничего не найдено)
+            if (e.code() == 404) {
+                CharacterResponse(
+                    info = PageInfo(0, 0, "", ""),
+                    results = emptyList()
+                )
+            } else {
+                throw e
+            }
+        }
     }
-
     suspend fun cacheCharacters(characters: List<Character>) {
         val entities = characters.map { it.toEntity() }
         dao.insertAll(entities)
