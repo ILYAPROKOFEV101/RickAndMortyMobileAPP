@@ -7,10 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -26,29 +24,16 @@ import coil.compose.AsyncImage
 import com.ilya.rickandmorty.data.Character as RMCharacter
 import com.ilya.rickandmorty.presentation.CharacterViewModel
 import com.ilya.rickandmorty.ui.theme.AppTypography
-import AppTheme
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SearchOff
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-
-import androidx.paging.PagingData
-
-import com.ilya.rickandmorty.ui.theme.AppTypography
-import kotlinx.coroutines.flow.flowOf
 
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
-import com.ilya.rickandmorty.R
+import com.ilya.rickandmorty.data.hasInternetAccess
 
 @Composable
 fun CharacterListScreen(
@@ -257,6 +242,31 @@ fun CharacterItem(character: RMCharacter, onClick: (RMCharacter) -> Unit) {
                     .aspectRatio(1f),
                 contentScale = ContentScale.Crop
             )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(
+                            when (character.status.lowercase()) {
+                                "alive" -> Color.Green
+                                "dead" -> Color.Red
+                                else -> Color.Gray
+                            }
+                        )
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = character.status,
+                    style = AppTypography.bodyMedium,
+                    color = Theme.colors.textColor
+                )
+            }
+
             Text(
                 text = character.name,
                 fontWeight = FontWeight.Bold,

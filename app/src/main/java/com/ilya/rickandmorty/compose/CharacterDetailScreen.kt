@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,19 +14,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.ilya.rickandmorty.api.RetrofitClient
 import com.ilya.rickandmorty.data.Character
 import com.ilya.rickandmorty.data.ROOM.DB.AppDatabase
 import com.ilya.rickandmorty.data.ROOM.toCharacter
 import com.ilya.rickandmorty.data.ROOM.toEntity
-import com.ilya.rickandmorty.ui.theme.formatCreatedDate
+import com.ilya.rickandmorty.data.formatCreatedDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CharacterDetailScreen(characterId: Int) {
+fun CharacterDetailScreen(
+    characterId: Int,
+    navController: NavController
+) {
     val context = LocalContext.current
 
     val characterDao = remember {
@@ -32,24 +38,20 @@ fun CharacterDetailScreen(characterId: Int) {
     }
 
     val characterState = produceState<Character?>(initialValue = null, characterId) {
-        val dao = characterDao
-
         val fromNetwork = withContext(Dispatchers.IO) {
             try {
                 val netChar = RetrofitClient.api.getCharacterDetails(characterId)
-                // Кешируем в БД
-                netChar?.let { dao.insert(it.toEntity()) }
+                netChar?.let { characterDao.insert(it.toEntity()) }
                 netChar
             } catch (e: Exception) {
-                null // Ошибка сети — вернём null, чтобы потом попробовать БД
+                null
             }
         }
 
         value = fromNetwork ?: withContext(Dispatchers.IO) {
-            dao.getCharacterById(characterId)?.toCharacter()
+            characterDao.getCharacterById(characterId)?.toCharacter()
         }
     }
-
 
     AppTheme {
         Scaffold(
@@ -57,10 +59,18 @@ fun CharacterDetailScreen(characterId: Int) {
             topBar = {
                 TopAppBar(
                     title = {
-                        Text(
-                            "Character Details",
-                            color = Theme.colors.textColor
-                        )
+                        Text("Character Details", color = Theme.colors.textColor)
+                    },
+                    navigationIcon = {
+                        if (navController.previousBackStackEntry != null) {
+                            IconButton(onClick = { navController.popBackStack() }) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = Theme.colors.textColor
+                                )
+                            }
+                        }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Theme.colors.primaryBackground
@@ -73,15 +83,13 @@ fun CharacterDetailScreen(characterId: Int) {
                     character = char,
                     modifier = Modifier.padding(padding)
                 )
-            } ?: run {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(Theme.colors.primaryBackground),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = Theme.colors.primaryAction)
-                }
+            } ?: Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Theme.colors.primaryBackground),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = Theme.colors.primaryAction)
             }
         }
     }

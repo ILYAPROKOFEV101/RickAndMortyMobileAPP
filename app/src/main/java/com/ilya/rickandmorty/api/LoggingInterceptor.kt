@@ -11,7 +11,7 @@ class LoggingInterceptor : Interceptor {
 
         val response = chain.proceed(request)
 
-        // Читаем тело ответа для логирования (копируем поток)
+        // Читаем тело ответа для логировани
         val responseBody = response.peekBody(Long.MAX_VALUE).string()
         Log.d("RetrofitLog", "Response body: $responseBody")
 

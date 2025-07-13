@@ -1,4 +1,4 @@
-package com.ilya.rickandmorty.ui.theme
+package com.ilya.rickandmorty.data
 
 import android.os.Build
 import java.time.OffsetDateTime

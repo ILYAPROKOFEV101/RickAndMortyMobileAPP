@@ -80,6 +80,7 @@ dependencies {
     implementation( "io.coil-kt:coil-compose:2.5.0")
 
 
+
     // Пагинация (опционально, для улучшенной реализации)
     implementation ("androidx.paging:paging-compose:3.3.0")
     implementation(libs.androidx.core.ktx)

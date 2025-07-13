@@ -38,8 +38,9 @@ fun NavSetup() {
         composable("character_detail/{id}") { backStackEntry ->
             val characterId = backStackEntry.arguments?.getString("id")?.toIntOrNull()
             if (characterId != null) {
-                CharacterDetailScreen(characterId)
+                CharacterDetailScreen(characterId = characterId, navController = navController)
             }
         }
+
     }
 }

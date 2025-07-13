@@ -57,7 +57,7 @@ class CharacterPagingSource(
                     }
                 }
             } else {
-                // Офлайн логика без изменений
+
                 val pageSize = params.loadSize
                 val offset = (page - 1) * pageSize
                 val entities = repository.getCharactersFromDb(name, status, species, gender, pageSize, offset)
